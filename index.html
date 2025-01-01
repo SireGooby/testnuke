@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Babylon.js with Volume Display</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+    #renderCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #volumeDisplay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 20px;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="volumeDisplay">Volume: Waiting for data...</div>
+  <canvas id="renderCanvas"></canvas>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylon.objFileLoader.min.js"></script>
+  <script>
+    const canvas = document.getElementById("renderCanvas");
+    const volumeDisplay = document.getElementById("volumeDisplay");
+    const engine = new BABYLON.Engine(canvas, true);
+
+    const createScene = () => {
+      const scene = new BABYLON.Scene(engine);
+
+      const camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 4, 10, BABYLON.Vector3.Zero(), scene);
+      camera.attachControl(canvas, true);
+
+      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+
+      // const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 2 }, scene);
+
+       // Particle system for dollar rain
+       const dollarRain = new BABYLON.ParticleSystem("dollarRain", 2000, scene);
+      dollarRain.particleTexture = new BABYLON.Texture("assets/textures/dollar.png", scene); // Use your dollar texture
+      dollarRain.emitter = new BABYLON.Vector3(0, 5, 0); // Emit from a point above the scene
+      dollarRain.minEmitBox = new BABYLON.Vector3(-5, 0, -5); // Emit across a wide area
+      dollarRain.maxEmitBox = new BABYLON.Vector3(5, 0, 5);
+
+      dollarRain.color1 = new BABYLON.Color4(1, 150, 1, 1); // White
+      dollarRain.color2 = new BABYLON.Color4(1, 100, 1, 1); // White
+      dollarRain.minSize = 0.3;
+      dollarRain.maxSize = 0.4;
+      dollarRain.minLifeTime = 2;
+      dollarRain.maxLifeTime = 4;
+
+      dollarRain.emitRate = 500; // Particles per second
+      dollarRain.gravity = new BABYLON.Vector3(0, -9.81, 0); // Gravity effect
+      dollarRain.direction1 = new BABYLON.Vector3(-1, -1, -1);
+      dollarRain.direction2 = new BABYLON.Vector3(1, -1, 1);
+
+      dollarRain.minEmitPower = 1;
+      dollarRain.maxEmitPower = 3;
+      dollarRain.updateSpeed = 0.01;
+
+
+      BABYLON.SceneLoader.Append("assets/models/", "dukenukem.obj", scene, function (scene) {
+  console.log("Model loaded successfully!");
+
+  // Filter the loaded meshes (exclude the root node)
+  const loadedMeshes = scene.meshes.filter((mesh) => mesh.name !== "__root__");
+  if (loadedMeshes.length === 0) {
+    console.error("No meshes found in the loaded model.");
+    return;
+  }
+
+  console.log("Loaded meshes:", loadedMeshes.map((mesh) => mesh.name));
+
+  // Create textures for each part of the model
+  const bodyTexture = new BABYLON.Texture("assets/textures/duke_body_d.jpg", scene);
+  const handTexture = new BABYLON.Texture("assets/textures/duke_hand_d.jpg", scene);
+  const headTexture = new BABYLON.Texture("assets/textures/duke_head_d.jpg", scene);
+
+  // Create materials
+  const bodyMaterial = new BABYLON.StandardMaterial("bodyMaterial", scene);
+  bodyMaterial.diffuseTexture = bodyTexture;
+
+  const handMaterial = new BABYLON.StandardMaterial("handMaterial", scene);
+  handMaterial.diffuseTexture = handTexture;
+
+  const headMaterial = new BABYLON.StandardMaterial("headMaterial", scene);
+  headMaterial.diffuseTexture = headTexture;
+
+  // Apply materials based on mesh index
+  if (loadedMeshes[0]) {
+    loadedMeshes[0].material = bodyMaterial; // Assume body mesh
+    console.log("Applied body texture to", loadedMeshes[0].name);
+  }
+
+  if (loadedMeshes[1]) {
+    loadedMeshes[1].material = handMaterial; // Assume hand mesh
+    console.log("Applied hand texture to", loadedMeshes[1].name);
+  }
+
+  if (loadedMeshes[2]) {
+    loadedMeshes[2].material = headMaterial; // Assume head mesh
+    console.log("Applied head texture to", loadedMeshes[2].name);
+  }
+
+  // Adjust the model (scaling, positioning)
+  const modelRoot = loadedMeshes[0]; // Use the first mesh as the root for positioning
+  if (modelRoot) {
+    modelRoot.scaling = new BABYLON.Vector3(1, 1, 1); // Scale down
+    modelRoot.position = new BABYLON.Vector3(0, 0, 0); // Move to origin
+  }
+});
+
+// Create a new sound object
+const sound = new BABYLON.Sound("king", "assets/audio/king.mp3", scene, null, {
+  autoplay: true,  // Automatically play the sound
+  loop: false,     // Set to true to loop the sound
+  volume: 0.5      // Set the volume (0.0 to 1.0)
+});
+
+// Create a new sound object
+const chaching = new BABYLON.Sound("king", "assets/audio/cha-ching-money.mp3", scene, null, {
+  autoplay: true,  // Automatically play the sound
+  loop: false,     // Set to true to loop the sound
+  volume: 0.5      // Set the volume (0.0 to 1.0)
+});
+
+// To play the sound manually
+sound.play();
+
+      const ws = new WebSocket('wss://pumpportal.fun/api/data');
+
+      ws.onopen = () => {
+        console.log("WebSocket connection established.");
+        const payload = {
+          method: "subscribeTokenTrade",
+          keys: ["72uQc3rfniwXp18ZexLBcA5SZWnNS2kEHqCtjbGdpump"] // Replace with actual token address or key
+        };
+        console.log("Sending subscription payload:", payload);
+        ws.send(JSON.stringify(payload));
+      };
+
+      ws.onmessage = (event) => {
+        console.log("Raw response from WebSocket:", event.data);
+
+        try {
+          const data = JSON.parse(event.data);
+          console.log("Parsed response:", data);
+          // Format the value with commas for thousands, millions, etc.
+const formattedMarketCap = new Intl.NumberFormat().format(data.marketCapSol * 190);
+
+// Update the display with the formatted number
+volumeDisplay.textContent = `Market Cap: $${formattedMarketCap}`;
+          // volumeDisplay.textContent = `Market Cap:  "$" ${data.marketCapSol * 193} `;
+          // Update sphere scale based on volume
+          const scale = data.marketCapSol / 100; // Adjust divisor as needed
+          // sphere.scaling = new BABYLON.Vector3(scale, scale, scale);
+          chaching.play();
+          dollarRain.start();
+          console.log("Formatted cap is:", formattedMarketCap);
+          if(formattedMarketCap >= 50000){
+            // To play the sound manually
+            sound.play();
+          }
+          setTimeout(() => dollarRain.stop(), 5000); // Stop after 5 seconds
+          if (data.volume) {
+            console.log("Volume:", data.volume);
+            volumeDisplay.textContent = `Volume: ${data.marketCapSol}`;
+            
+          } else {
+            console.log("No volume information in this message.");
+          }
+        } catch (error) {
+          console.error("Error parsing WebSocket message:", error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket encountered an error:", error);
+      };
+
+      ws.onclose = (event) => {
+        console.log("WebSocket connection closed:", event);
+      };
+
+      return scene;
+    };
+
+    const scene = createScene();
+    engine.runRenderLoop(() => {
+      scene.render();
+    });
+
+    window.addEventListener("resize", () => {
+      engine.resize();
+    });
+  </script>
+</body>
+</html>
