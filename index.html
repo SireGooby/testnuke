@@ -57,10 +57,10 @@
       dollarRain.minEmitBox = new BABYLON.Vector3(-5, 0, -5); // Emit across a wide area
       dollarRain.maxEmitBox = new BABYLON.Vector3(5, 0, 5);
 
-      dollarRain.color1 = new BABYLON.Color4(1, 150, 1, 1); // White
-      dollarRain.color2 = new BABYLON.Color4(1, 100, 1, 1); // White
-      dollarRain.minSize = 0.3;
-      dollarRain.maxSize = 0.4;
+      dollarRain.color1 = new BABYLON.Color4(1, 1, 1, 1); // White
+      dollarRain.color2 = new BABYLON.Color4(1, 50, 1, 1); // White
+      dollarRain.minSize = 0.1;
+      dollarRain.maxSize = 0.2;
       dollarRain.minLifeTime = 2;
       dollarRain.maxLifeTime = 4;
 
@@ -148,7 +148,7 @@ sound.play();
         console.log("WebSocket connection established.");
         const payload = {
           method: "subscribeTokenTrade",
-          keys: ["72uQc3rfniwXp18ZexLBcA5SZWnNS2kEHqCtjbGdpump"] // Replace with actual token address or key
+          keys: ["BYhStwWyokJy7wwnztfJz18w427ukETJmvK1NvxNpump"] // Replace with actual token address or key
         };
         console.log("Sending subscription payload:", payload);
         ws.send(JSON.stringify(payload));
